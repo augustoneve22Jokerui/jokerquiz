@@ -1,0 +1,748 @@
+<% layout(false) -%>
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title><%= typeof title !== 'undefined' ? title : 'Entrar na Arena — Anime Quiz' %></title>
+  
+  <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+  <style>
+    :root {
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-display: 'Space Grotesk', sans-serif;
+      
+      /* Paleta Roxo & Preto Obsidiana */
+      --bg-base: #0a0812;
+      --bg-surface: #120e20;
+      --bg-surface-elevated: #1a142e;
+      --bg-input: #151026;
+      --border-subtle: #292044;
+      --border-focus: #8b5cf6;
+      
+      --primary: #7c3aed;
+      --primary-light: #a855f7;
+      --primary-glow: rgba(139, 92, 246, 0.35);
+      
+      --accent-cyan: #06b6d4;
+      --accent-pink: #ec4899;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      
+      --transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg-base: #f3f0fc;
+        --bg-surface: #ffffff;
+        --bg-surface-elevated: #f8f6fe;
+        --bg-input: #f1edfb;
+        --border-subtle: #e2d9f7;
+        --border-focus: #7c3aed;
+        
+        --text-main: #0f172a;
+        --text-muted: #475569;
+        --text-dim: #94a3b8;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Iluminação de fundo e texturas com gradientes roxos */
+    .ambient-glow {
+      position: fixed;
+      width: 550px;
+      height: 550px;
+      border-radius: 50%;
+      filter: blur(140px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.45;
+    }
+    .glow-top-left {
+      top: -150px;
+      left: -150px;
+      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    }
+    .glow-bottom-right {
+      bottom: -150px;
+      right: -150px;
+      background: radial-gradient(circle, #4c1d95 0%, transparent 70%);
+    }
+
+    /* Container de Autenticação */
+    .auth-wrapper {
+      width: 100%;
+      max-width: 1140px;
+      min-height: 680px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px var(--primary-glow);
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    /* Lado Esquerdo: Hero & Identidade Gamer */
+    .auth-hero-panel {
+      position: relative;
+      background: linear-gradient(135deg, rgba(18, 14, 32, 0.95), rgba(30, 20, 60, 0.9)), 
+                  url('https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+    .auth-hero-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, var(--bg-surface) 0%, transparent 80%);
+      pointer-events: none;
+    }
+
+    .brand-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-pink));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .brand-logo-icon svg {
+      width: 26px;
+      height: 26px;
+      fill: #ffffff;
+    }
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, #c4b5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 460px;
+      margin-bottom: 24px;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(124, 58, 237, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #d8b4fe;
+      margin-bottom: 20px;
+    }
+    .hero-tag::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #a855f7;
+      box-shadow: 0 0 10px #a855f7;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 2.6rem;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #a855f7, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-description {
+      font-size: 0.98rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* Destaques Competitivos na Lateral */
+    .competitive-features {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .feature-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .feature-metric {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .feature-label {
+      font-size: 0.76rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    /* Lado Direito: Formulário de Login */
+    .auth-form-panel {
+      padding: 56px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: var(--bg-surface);
+      position: relative;
+    }
+
+    .form-header {
+      margin-bottom: 32px;
+    }
+    .form-title {
+      font-family: var(--font-display);
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .form-subtitle {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+    .form-subtitle a {
+      color: var(--primary-light);
+      text-decoration: none;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .form-subtitle a:hover {
+      text-decoration: underline;
+      color: #c084fc;
+    }
+
+    /* Grupos de Formulário */
+    .form-group {
+      margin-bottom: 22px;
+      position: relative;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      width: 20px;
+      height: 20px;
+      color: var(--text-dim);
+      pointer-events: none;
+      transition: var(--transition);
+    }
+    .form-control {
+      width: 100%;
+      height: 50px;
+      padding: 0 46px 0 48px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      font-size: 0.92rem;
+      transition: var(--transition);
+    }
+    .form-control::placeholder {
+      color: var(--text-dim);
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+      background: var(--bg-surface-elevated);
+    }
+    .form-control:focus + .input-icon,
+    .input-wrapper:focus-within .input-icon {
+      color: var(--primary-light);
+    }
+
+    .btn-toggle-password {
+      position: absolute;
+      right: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .btn-toggle-password:hover {
+      color: var(--text-main);
+    }
+
+    /* Opções e Recuperação de Palavra-passe */
+    .form-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      font-size: 0.84rem;
+    }
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      color: var(--text-muted);
+      user-select: none;
+    }
+    .custom-checkbox {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      background: var(--bg-input);
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition);
+    }
+    .custom-checkbox:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .custom-checkbox:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .forgot-link {
+      color: var(--primary-light);
+      text-decoration: none;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .forgot-link:hover {
+      text-decoration: underline;
+      color: #c084fc;
+    }
+
+    /* Botão Principal com Efeito Gradiente Gamer */
+    .btn-submit {
+      width: 100%;
+      height: 52px;
+      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #c026d3 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-main);
+      font-size: 0.96rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.45);
+    }
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -2px rgba(147, 51, 234, 0.6);
+      filter: brightness(1.08);
+    }
+    .btn-submit:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .btn-submit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Rodapé do Formulário */
+    .auth-footer {
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    /* Responsividade */
+    @media (max-width: 960px) {
+      .auth-wrapper {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+      }
+      .auth-hero-panel {
+        display: none;
+      }
+      .auth-form-panel {
+        padding: 40px 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Elementos de iluminação ambiente roxa -->
+  <div class="ambient-glow glow-top-left"></div>
+  <div class="ambient-glow glow-bottom-right"></div>
+
+  <main class="auth-wrapper" role="main">
+    
+    <!-- Painel Lateral Inspiracional (Desktop) -->
+    <section class="auth-hero-panel" aria-label="Identidade Competitiva Anime Quiz">
+      <div class="brand-header">
+        <div class="brand-logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="brand-name"><%= locals.appName || 'ANIME QUIZ' %></span>
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-tag">Ecossistema Competitivo v1.0</div>
+        <h1 class="hero-title">Prove a sua mestria <span>Shinobi</span> nas arenas.</h1>
+        <p class="hero-description">
+          Duelos em tempo real, torneios eliminatórios premiados em Kwanzas (AOA) e tabelas de classificação que consagram os maiores mestres de anime de Angola.
+        </p>
+      </div>
+
+      <div class="competitive-features">
+        <div class="feature-item">
+          <span class="feature-metric">1v1 & 32P</span>
+          <span class="feature-label">Multiplayer</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-metric">4 Níveis</span>
+          <span class="feature-label">Iniciante a Hokage</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-metric">AOA (Kz)</span>
+          <span class="feature-label">Premiações Reais</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Painel de Login -->
+    <section class="auth-form-panel">
+      <header class="form-header">
+        <h2 class="form-title">Iniciar Sessão</h2>
+        <p class="form-subtitle">
+          Novo por aqui? <a href="/auth/register">Crie uma conta de competidor</a>
+        </p>
+      </header>
+
+      <form id="loginForm" action="/auth/login" method="POST" novalidate autocomplete="on">
+        <!-- Token CSRF Seguro gerado pelo backend -->
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+        <!-- Campo: E-mail ou Nome de Utilizador -->
+        <div class="form-group">
+          <label for="login" class="form-label">Nome de Utilizador ou E-mail</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input 
+              type="text" 
+              id="login" 
+              name="login" 
+              class="form-control" 
+              placeholder="Ex: naruto_uzumaki ou gamer@ao.com"
+              value="<%= typeof flash !== 'undefined' && flash.oldInput && flash.oldInput.login ? flash.oldInput.login : '' %>"
+              required 
+              autofocus
+            >
+          </div>
+        </div>
+
+        <!-- Campo: Palavra-passe -->
+        <div class="form-group">
+          <label for="password" class="form-label">Palavra-passe</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-control" 
+              placeholder="••••••••••••"
+              required
+            >
+            <button type="button" class="btn-toggle-password" id="togglePasswordBtn" aria-label="Mostrar ou ocultar palavra-passe">
+              <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opções adicionais: Lembrar-me e Recuperação de Acesso -->
+        <div class="form-meta">
+          <label class="checkbox-label" for="rememberMe">
+            <input type="checkbox" id="rememberMe" name="rememberMe" value="true" class="custom-checkbox">
+            <span>Manter sessão iniciada</span>
+          </label>
+          <a href="/auth/forgot-password" class="forgot-link">Esqueceu-se da senha?</a>
+        </div>
+
+        <!-- Botão de Submissão -->
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="spinner" id="btnSpinner" aria-hidden="true"></span>
+          <span id="btnText">Entrar na Arena</span>
+        </button>
+      </form>
+
+      <footer class="auth-footer">
+        Protegido pelo sistema anti-cheat e encriptação ponta-a-ponta do <%= locals.appName || 'Anime Quiz' %>.
+      </footer>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('loginForm');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnSpinner = document.getElementById('btnSpinner');
+      const btnText = document.getElementById('btnText');
+      const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+      const passwordInput = document.getElementById('password');
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+      // Configuração visual customizada do SweetAlert2 na paleta do Anime Quiz
+      const Toast = Swal.mixin({
+        background: '#161224',
+        color: '#f8fafc',
+        confirmButtonColor: '#7c3aed',
+        cancelButtonColor: '#241b3d',
+        customClass: {
+          popup: 'swal2-dark-custom',
+          title: 'swal2-title-custom'
+        }
+      });
+
+      // 1. Processamento de mensagens flash vindas da sessão do servidor (Express Flash)
+      <% if (typeof flash !== 'undefined') { %>
+        <% if (flash.error) { %>
+          Toast.fire({
+            icon: 'error',
+            title: 'Acesso Não Autorizado',
+            text: '<%= flash.error %>'
+          });
+        <% } %>
+        <% if (flash.warning) { %>
+          Toast.fire({
+            icon: 'warning',
+            title: 'Aviso de Segurança',
+            text: '<%= flash.warning %>'
+          });
+        <% } %>
+        <% if (flash.success) { %>
+          Toast.fire({
+            icon: 'success',
+            title: 'Sucesso',
+            text: '<%= flash.success %>'
+          });
+        <% } %>
+        <% if (flash.info) { %>
+          Toast.fire({
+            icon: 'info',
+            title: 'Informação',
+            text: '<%= flash.info %>'
+          });
+        <% } %>
+      <% } %>
+
+      // 2. Alternância de visibilidade da palavra-passe
+      togglePasswordBtn.addEventListener('click', () => {
+        const isPassword = passwordInput.getAttribute('type') === 'password';
+        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        
+        togglePasswordBtn.innerHTML = isPassword 
+          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+               <line x1="1" y1="1" x2="23" y2="23"></line>
+             </svg>`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+               <circle cx="12" cy="12" r="3"></circle>
+             </svg>`;
+      });
+
+      // 3. Submissão Assíncrona Inteligente com Validação Preventiva
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const login = document.getElementById('login').value.trim();
+        const password = passwordInput.value;
+        const rememberMe = document.getElementById('rememberMe').checked;
+
+        if (!login || !password) {
+          Toast.fire({
+            icon: 'warning',
+            title: 'Campos Obrigatórios',
+            text: 'Por favor, introduza o seu nome de utilizador e a respectiva palavra-passe.'
+          });
+          return;
+        }
+
+        // Feedback imediato no botão
+        submitBtn.disabled = true;
+        btnSpinner.style.display = 'inline-block';
+        btnText.textContent = 'A verificar credenciais...';
+
+        try {
+          const response = await fetch('/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'x-csrf-token': csrfToken
+            },
+            body: JSON.stringify({
+              login,
+              password,
+              rememberMe,
+              _csrf: csrfToken
+            })
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            Toast.fire({
+              icon: 'success',
+              title: 'Bem-vindo de Volta!',
+              text: data.message || 'Credenciais confirmadas. A entrar na arena...',
+              showConfirmButton: false,
+              timer: 1200
+            }).then(() => {
+              window.location.href = data.redirect || '/dashboard';
+            });
+          } else {
+            // Reabilita o botão em caso de erro
+            submitBtn.disabled = false;
+            btnSpinner.style.display = 'none';
+            btnText.textContent = 'Entrar na Arena';
+
+            Toast.fire({
+              icon: 'error',
+              title: 'Falha na Autenticação',
+              text: data.error?.message || 'Verifique as suas credenciais e tente novamente.'
+            });
+          }
+        } catch (networkError) {
+          // Fallback gracioso: submissão tradicional de formulário caso a Fetch API falhe
+          console.warn('Falha na requisição assíncrona, a submeter formulário tradicional:', networkError);
+          loginForm.submit();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
